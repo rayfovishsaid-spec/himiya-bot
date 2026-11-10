@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Химия — как выглядит бот в Telegram</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 20px 64px; background: radial-gradient(1000px 500px at 30% -10%, #2b1b4d, #0c0a14 60%, #07060d);
+         color: #f2eefb; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .head { max-width: 1180px; margin: 0 auto 28px; }
+  h1 { font-size: 27px; margin: 0 0 8px; letter-spacing: -.4px; }
+  h1 span { background: linear-gradient(135deg, #c084fc, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { color: #a99fc9; font-size: 14px; line-height: 1.6; max-width: 760px; margin: 0; }
+  .grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 22px; align-items: start; }
+  section { }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: #a855f7; margin: 0 0 4px; }
+  .note { font-size: 12px; color: #8b7bb5; margin: 0 0 10px; line-height: 1.45; min-height: 30px; }
+  .phone { background: #12101f; border: 1px solid rgba(168,85,247,.28); border-radius: 22px; padding: 14px 11px;
+            display: flex; flex-direction: column; gap: 7px; box-shadow: 0 22px 60px rgba(0,0,0,.5); }
+  .b { max-width: 92%; padding: 9px 12px; border-radius: 14px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+  .b.bot { align-self: flex-start; background: #1d1932; border: 1px solid rgba(168,85,247,.14); border-bottom-left-radius: 5px; }
+  .b.me  { align-self: flex-end; background: linear-gradient(135deg, #7c3aed, #db2777); border-bottom-right-radius: 5px; }
+  .b blockquote { border-left: 3px solid rgba(168,85,247,.55); margin: 7px 0 0; padding: 2px 0 2px 9px; color: #c9bce8; }
+  .b b { color: #fff; }
+  .b i { color: #a394cf; }
+  .ph { margin-top: 8px; height: 110px; border-radius: 10px; display: grid; place-items: center;
+         background: linear-gradient(135deg, #6d28d9, #be185d); color: #fff; font-size: 12px; }
+  .kb { align-self: stretch; display: flex; flex-direction: column; gap: 5px; margin-top: 1px; }
+  .kbrow { display: flex; gap: 5px; flex-wrap: wrap; }
+  .kbtn { flex: 1; min-width: 45%; text-align: center; background: rgba(168,85,247,.13);
+           border: 1px solid rgba(168,85,247,.38); color: #e9dcff; border-radius: 9px; padding: 8px 9px; font-size: 12px; }
+  .replykb { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+  .rbtn { background: #221c38; border: 1px solid rgba(168,85,247,.25); color: #ded4f5; border-radius: 8px;
+           padding: 9px 10px; font-size: 12.5px; text-align: center; flex: 1; }
+  .replykb .kbrow { display: flex; }
+  footer { max-width: 1180px; margin: 34px auto 0; color: #7c6ea3; font-size: 12px; line-height: 1.6; }
+</style></head><body>
+<div class="head">
+  <h1>🧪 <span>Химия</span> — как это выглядит в Telegram</h1>
+  <p class="lead">Это не макет: тексты, карточки и кнопки сгенерированы напрямую из боевого кода
+  (<code>texts.py</code>, <code>services/matchmaking.py</code>). Именно так бот отвечает в
+  <b>@chemistry7LOVE_bot</b>. Единственное, что нельзя задать через Bot API — фон и градиенты в пузырях:
+  их рисует сам клиент Telegram.</p>
+</div>
+<div class="grid">
+<section><h3>1. Первый экран</h3><p class="note">Что видит человек по /start — до анкеты.</p><div class="phone">
+<div class="b bot">🧪 <b>Химия</b> — знакомства, где сначала смысл, а потом фото.
+
+Здесь не надо писать «привет, как дела» в пустоту:
+• анкета — 5 честных вопросов и голосовое
+• фото скрыто, пока не случился мэтч
+• после мэтча — «Ледокол»: 5 вопросов, и только потом контакты
+• мэтч сгорает за 48 часов тишины — никаких мёртвых чатов
+
+Погнали? Заполним анкету — это минута.</div>
+<div class="b bot">Как тебя зовут? (имя или ник — как хочешь, чтобы видели другие)</div>
+</div></section>
+<section><h3>2. Анкета: 5 вопросов</h3><p class="note">Кнопки вместо ввода — заполняется за минуту.</p><div class="phone">
+<div class="b bot"><b>Анкета: вопрос 1 из 5</b>
+
+Идеальная пятница — это…</div><div class="kb"><div class="kbrow"><span class="kbtn">Бар с друзьями</span></div><div class="kbrow"><span class="kbtn">Сериал и доставка</span></div><div class="kbrow"><span class="kbtn">Концерт или выставка</span></div><div class="kbrow"><span class="kbtn">Спонтанная поездка</span></div></div>
+<div class="b bot">Теперь фото 📸
+
+Оно <b>не показывается</b> в ленте — человек увидит его только после взаимного мэтча. Так что можно без фильтров и позёрства.</div>
+<div class="b bot">И главное — <b>голосовое на 15 секунд</b> 🎙
+
+Ответь: «Что тебя в последний раз удивило?»
+Живой голос отсекает 99% ботов и сразу делает анкету в 10 раз интереснее.
+
+Не хочешь? Напиши /skip</div>
+</div></section>
+<section><h3>3. Карточка в ленте</h3><p class="note">Фото скрыто. Химия считается по ответам и интересам.</p><div class="phone">
+<div class="b bot">🧪 <b>Марк, 28</b> — Лондон 🛡
+💫 Химия с тобой: <b>84%</b>  ▰▰▰▰▰▰▰▰▱▱
+📍 Тот же город
+
+<blockquote>Идеальная пятница — это… → <b>Бар с друзьями</b>
+В человеке для меня важнее… → <b>Чувство юмора</b>
+Твой уровень пофигизма к бардаку в комнате: → <b>5 из 10 — творческий хаос</b>
+Сова или жаворонок? → <b>Сова — живу ночью</b>
+Первый шаг в переписке — это… → <b>Всегда на мне</b>
+Отношения для меня — это… → <b>Команда</b></blockquote>
+
+🏷 музыка · кино · путешествия · фотография · спорт
+📸 <i>Фото откроется, если совпадёте.</i></div><div class="kb"><div class="kbrow"><span class="kbtn">❤️ Хочу познакомиться</span><span class="kbtn">➖ Дальше</span></div><div class="kbrow"><span class="kbtn">👀 Подглядеть фото — 1 ⭐</span></div><div class="kbrow"><span class="kbtn">🎙 Голос</span><span class="kbtn">🚩 Жалоба</span></div></div>
+</div></section>
+<section><h3>4. Мэтч и Ледокол</h3><p class="note">Взаимный лайк ≠ чат. Сначала 5 вопросов.</p><div class="phone">
+<div class="b bot">🔥💥 <b>МЭТЧ!</b>
+
+Вы оба нажали «хочу познакомиться».
+
+<blockquote>🧊 <b>Ледокол</b> — 5 вопросов. Отвечаете оба, ответы раскрываются только когда ответили двое.
+Пройдёте — открою контакты и чат.</blockquote>
+<i>Это 2 минуты. Зато разговор потом идёт сам.</i></div>
+<div class="b bot">🧊 <b>Вопрос 1 из 5</b>
+
+Какой отпуск выберем?</div><div class="kb"><div class="kbrow"><span class="kbtn">Море и лежак</span></div><div class="kbrow"><span class="kbtn">Горы и рюкзак</span></div><div class="kbrow"><span class="kbtn">Город и музеи</span></div><div class="kbrow"><span class="kbtn">Дом и никто не звонит</span></div></div>
+<div class="b me">Горы и рюкзак</div>
+<div class="b bot">🧊 <b>Ответ принят.</b> Ждём вторую сторону — как ответит, покажу оба ответа.</div>
+<div class="b bot">🧊 <b>Вопрос 1/5</b> · Какой отпуск выберем?
+
+<blockquote><b>Аня:</b> Горы и рюкзак
+<b>Марк:</b> Горы и рюкзак</blockquote>
+💥 <b>Полное совпадение!</b></div>
+</div></section>
+<section><h3>5. Разблокировка</h3><p class="note">Контакты и чат — после квеста.</p><div class="phone">
+<div class="b bot">🎉 <b>Ледокол пройден!</b>
+
+Чат открыт. Фото — следующим сообщением 📸
+
+<blockquote>⏳ У вас <b>48 часов</b>, чтобы начать разговор. Иначе мэтч сгорит — так у нас не бывает мёртвых мэтчей.</blockquote>
+<i>Напиши первым что-нибудь поумнее «привет» 😉</i></div><div class="kb"><div class="kbrow"><span class="kbtn">🔗 Открыть профиль в Telegram</span></div><div class="kbrow"><span class="kbtn">💬 Писать здесь, анонимно</span></div></div>
+<div class="b bot">📸 Вот и фото: <b>Марк</b>, 28<div class="ph">фото</div></div>
+</div></section>
+<section><h3>6. Анонимный чат</h3><p class="note">Сообщения идут через бота, контакты не раскрываются.</p><div class="phone">
+<div class="b bot">💬 <b>Чат с Марк</b>
+
+<blockquote>Пиши прямо сюда — сообщение уйдёт анонимно. @юзернейм человек увидит только если ты сам его скинешь.</blockquote>
+<i>Выйти: /stop · пожаловаться: 🚩</i></div><div class="kb"><div class="kbrow"><span class="kbtn">🚪 Выйти из чата</span><span class="kbtn">🚩 Жалоба</span></div></div>
+<div class="b me">привет! видел, ты тоже выбрала «горы и рюкзак»</div>
+<div class="b bot">💬 <b>Марк</b>
+Ага 🙂 А ты где-нибудь была в походе, или это мечта?</div><div class="kb"><div class="kbrow"><span class="kbtn">↩️ Ответить</span></div></div>
+</div></section>
+<section><h3>7. Лента</h3><p class="note">Контент по темам из анкеты. Главная кнопка — «поделиться», а не «открыть».</p><div class="phone">
+<div class="b bot">🎬 <b>Полуночные показы возвращаются в кинотеатры Лондона</b>
+<i>Evening Standard · 3 ч назад</i>
+<blockquote>Независимые кинотеатры Soho и Peckham возрождают сеансы в полночь: билеты раскупают за сутки, а половина зала — люди 25–35 лет.</blockquote>
+
+https://www.standard.co.uk/culture/film</div><div class="kb"><div class="kbrow"><span class="kbtn">📖 Открыть статью</span></div><div class="kbrow"><span class="kbtn">💌 Поделиться с мэтчем</span></div><div class="kbrow"><span class="kbtn">🔖 В закладки</span><span class="kbtn">➖ Дальше</span></div><div class="kbrow"><span class="kbtn">⚙️ Мои темы</span><span class="kbtn">🚩 Жалоба</span></div></div>
+<div class="b bot">🧊 <b>Отправлено Марку.</b> Как отреагирует — увидишь здесь.</div>
+<div class="b bot">💌 <b>Аня</b> поделилась:
+
+🎬 <b>Полуночные показы возвращаются в кинотеатры Лондона</b>
+<i>Evening Standard · 3 ч назад</i>
+<blockquote>Независимые кинотеатры Soho и Peckham возрождают сеансы в полночь.</blockquote></div><div class="kb"><div class="kbrow"><span class="kbtn">🔥 Класс</span><span class="kbtn">🤔 Спорно</span></div><div class="kbrow"><span class="kbtn">💬 Обсудить</span><span class="kbtn">↩️ Ответить</span></div></div>
+<div class="b bot">💬 <b>Марк</b>: 🔥 Класс
+<i>на «Полуночные показы возвращаются в кинотеатры Лондона»</i></div>
+</div></section>
+<section><h3>8. Главное меню</h3><p class="note">Reply-клавиатура — всегда под рукой.</p><div class="phone">
+<div class="b bot">С возвращением, <b>Аня</b> 🧪
+
+Что делаем? Смотри ленту или проверь мэтчи.</div>
+<div class="replykb"><div class="kbrow"><span class="rbtn">🔍 Искать</span><span class="rbtn">💬 Мои мэтчи</span></div><div class="kbrow"><span class="rbtn">📰 Лента</span><span class="rbtn">☕ Дайджест</span></div><div class="kbrow"><span class="rbtn">🔖 Закладки</span><span class="rbtn">👤 Анкета</span></div><div class="kbrow"><span class="rbtn">💘 Кто меня лайкнул</span></div></div>
+</div></section>
+</div>
+<footer>Сгенерировано <code>tools/preview.py</code> · Telegram-разметка: HTML (b, i, blockquote, code) + inline-кнопки.
+Bot API не управляет шрифтами, цветом пузырей и аватаром — аватар загружается через @BotFather.</footer>
+</body></html>
