@@ -1,0 +1,17 @@
+# systemd-юнит для 24/7. Скопируй в /etc/systemd/system/ и выполни:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now himiya-bot
+[Unit]
+Description=Himiya dating bot
+After=network-online.target
+
+[Service]
+Type=simple
+User=himiya
+WorkingDirectory=/opt/himiya_bot
+EnvironmentFile=/opt/himiya_bot/.env
+ExecStart=/opt/himiya_bot/.venv/bin/python bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

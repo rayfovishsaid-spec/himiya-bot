@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Химия — прототип бота</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 20% -10%, #2b1b4d 0%, #0d0b16 55%, #08070f 100%);
+    color: #f2eefb; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; padding: 24px 16px 48px;
+  }
+  .wrap { display: flex; gap: 32px; align-items: flex-start; max-width: 1060px; width: 100%; flex-wrap: wrap; justify-content: center; }
+
+  /* ── телефон ── */
+  .phone {
+    width: 390px; max-width: 100%; height: 760px; border-radius: 40px; overflow: hidden; position: relative;
+    background: #12101f; border: 1px solid rgba(168,85,247,.35);
+    box-shadow: 0 40px 100px rgba(0,0,0,.65), 0 0 0 8px #0b0913, 0 0 90px rgba(168,85,247,.22);
+    display: flex; flex-direction: column;
+  }
+  .topbar {
+    padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, #1d1730, #171326); border-bottom: 1px solid rgba(168,85,247,.18);
+  }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex: 0 0 38px;
+    background: linear-gradient(135deg, #a855f7, #ec4899); display: grid; place-items: center; font-size: 19px;
+  }
+  .who { font-size: 14px; font-weight: 700; letter-spacing: .2px; }
+  .status { font-size: 11.5px; color: #9d8fc4; margin-top: 2px; }
+  .badge { margin-left: auto; font-size: 10.5px; color: #c4b5fd; border: 1px solid rgba(168,85,247,.5); padding: 3px 8px; border-radius: 999px; }
+
+  .chat {
+    flex: 1; overflow-y: auto; padding: 16px 12px 8px; display: flex; flex-direction: column; gap: 8px;
+    scrollbar-width: thin; scrollbar-color: #34294f transparent;
+  }
+  .chat::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-thumb { background: #34294f; border-radius: 8px; }
+
+  .msg { max-width: 84%; padding: 9px 12px; border-radius: 15px; font-size: 13.5px; line-height: 1.45; animation: pop .25s ease; white-space: pre-wrap; word-wrap: break-word; }
+  @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+  .bot { align-self: flex-start; background: #1d1932; border: 1px solid rgba(168,85,247,.14); border-bottom-left-radius: 5px; }
+  .me  { align-self: flex-end; background: linear-gradient(135deg, #7c3aed, #db2777); border-bottom-right-radius: 5px;
+         box-shadow: 0 6px 18px rgba(219,39,119,.28); }
+  .bot b, .me b { color: #fff; }
+  .bot i { color: #b9a8e8; }
+  .shared-tag { font-size: 11px; color: #f9a8d4; margin-bottom: 4px; letter-spacing: .3px; }
+  .sys { align-self: center; font-size: 11px; color: #8b7bb5; background: rgba(168,85,247,.1); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(168,85,247,.18); }
+
+  .kb { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; max-width: 88%; animation: pop .25s ease; }
+  .kb.row { flex-direction: row; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid rgba(168,85,247,.4); background: rgba(168,85,247,.13); color: #e9dcff;
+    padding: 9px 12px; border-radius: 11px; font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: .15s; text-align: left; line-height: 1.3;
+  }
+  .btn:hover { background: rgba(168,85,247,.27); border-color: #a855f7; transform: translateY(-1px); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: linear-gradient(135deg, #a855f7, #ec4899); border: none; color: #fff; font-weight: 600; }
+  .btn.dim { opacity: .82; }
+  .btn.star { border-color: rgba(250,204,21,.5); background: rgba(250,204,21,.1); color: #fde68a; }
+
+  .inputbar { display: flex; gap: 8px; padding: 10px 12px 12px; background: #171326; border-top: 1px solid rgba(168,85,247,.18); }
+  .inputbar input {
+    flex: 1; background: #221c38; border: 1px solid rgba(168,85,247,.22); color: #f2eefb;
+    border-radius: 12px; padding: 11px 13px; font-size: 13.5px; font-family: inherit; outline: none;
+  }
+  .inputbar input:focus { border-color: #a855f7; }
+  .send { background: linear-gradient(135deg, #a855f7, #ec4899); border: none; color: #fff; width: 44px; border-radius: 12px; cursor: pointer; font-size: 16px; }
+
+  .msg blockquote { border-left: 3px solid rgba(168,85,247,.5); margin: 7px 0 0; padding-left: 9px; color: #c9bce8; font-size: 12.8px; }
+  .preview { margin-top: 8px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(168,85,247,.22); background: #171326; }
+  .preview .thumb { height: 92px; background: linear-gradient(135deg, #6d28d9, #be185d 60%, #f59e0b); position: relative; }
+  .preview .thumb::after { content: "📰"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 30px; opacity: .85; }
+  .preview .body { padding: 8px 10px; font-size: 12px; color: #b9a8e8; }
+  .preview .body b { color: #fff; display: block; font-size: 12.5px; margin-bottom: 3px; }
+  .photo {
+    width: 100%; border-radius: 12px; display: block; margin-top: 6px; aspect-ratio: 4/5; object-fit: cover;
+  }
+  .photo-hidden {
+    width: 100%; aspect-ratio: 4/5; border-radius: 12px; margin-top: 6px; display: grid; place-items: center;
+    background: repeating-linear-gradient(45deg, #241d3d, #241d3d 10px, #2b2248 10px, #2b2248 20px);
+    color: #8b7bb5; font-size: 12px; border: 1px dashed rgba(168,85,247,.35); text-align: center; padding: 12px;
+  }
+
+  /* ── правая панель ── */
+  .side { width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    background: rgba(29,25,50,.62); border: 1px solid rgba(168,85,247,.2); border-radius: 18px; padding: 18px 20px;
+    backdrop-filter: blur(8px);
+  }
+  h1 { font-size: 25px; margin: 0 0 6px; letter-spacing: -.4px; }
+  h1 span { background: linear-gradient(135deg, #c084fc, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: #a99fc9; font-size: 13.5px; line-height: 1.55; margin: 0; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.3px; color: #a855f7; margin: 0 0 12px; }
+  .feat { display: flex; gap: 11px; margin-bottom: 11px; font-size: 13px; line-height: 1.5; color: #d6cdea; }
+  .feat .ico { font-size: 16px; flex: 0 0 20px; }
+  .feat b { color: #fff; }
+  .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #9d8fc4; line-height: 1.7; max-height: 150px; overflow-y: auto; }
+  .log div { padding: 1px 0; border-bottom: 1px dashed rgba(168,85,247,.1); }
+  .log .ok { color: #6ee7b7; }
+  .reset { background: none; border: 1px solid rgba(168,85,247,.4); color: #c4b5fd; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 12.5px; font-family: inherit; }
+  .hint { font-size: 11.5px; color: #8b7bb5; margin-top: 10px; }
+  @media (max-width: 860px) { .phone { height: 660px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone">
+    <div class="topbar">
+      <div class="avatar">🧪</div>
+      <div>
+        <div class="who">Химия</div>
+        <div class="status">бот · онлайн</div>
+      </div>
+      <div class="badge" id="chemBadge">химия —</div>
+    </div>
+    <div class="chat" id="chat"></div>
+    <div class="inputbar">
+      <input id="inp" placeholder="Напиши сообщение…" autocomplete="off">
+      <button class="send" id="send">➤</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h1>🧪 <span>Химия</span></h1>
+      <p class="sub">Знакомства, где сначала смысл, потом фото. Свайпы — привычные, но анкета говорит больше, чем селфи, а после мэтча вас ждёт «Ледокол» из 5 вопросов.</p>
+    </div>
+
+    <div class="card">
+      <h2>Почему это работает</h2>
+      <div class="feat"><div class="ico">🎙</div><div><b>Голос в анкете.</b> 15 секунд живой речи убивают 99% ботов и фейков — их не подделать скриптом.</div></div>
+      <div class="feat"><div class="ico">💫</div><div><b>Химия в процентах.</b> Считается по 5 ответам и общим интересам, а не по «ой, красивое фото».</div></div>
+      <div class="feat"><div class="ico">🧊</div><div><b>Ледокол после мэтча.</b> Оба отвечают на 5 вопросов, видят ответы друг друга только синхронно. Контакты — после.</div></div>
+      <div class="feat"><div class="ico">⏳</div><div><b>Мэтч сгорает за 48 ч.</b> Тишина = мэтча нет. Так лента не превращается в кладбище чатов.</div></div>
+      <div class="feat"><div class="ico">🛡</div><div><b>Репутация и верификация.</b> Кружок с именем и датой → бейдж. Жалобы → ручная модерация, крип → бан.</div></div>
+      <div class="feat"><div class="ico">📰</div><div><b>Лента по твоим темам.</b> 3–5 материалов в день из живых RSS (BBC, Guardian, HN, Variety…). Главная кнопка на карточке — не «Открыть», а <b>«Поделиться с мэтчем»</b>: карточка падает прямо в чат, а реакция партнёра («🔥 Класс») приходит тебе обычным сообщением. Мэтч оживает без выхода из бота.</div></div>
+      <div class="feat"><div class="ico">👀</div><div><b>«Вы оба это читали».</b> Если вы с мэтчем сохранили одну статью — бот сам подсветит это как готовый повод написать первым.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Что происходит под капотом</h2>
+      <div class="log" id="log"></div>
+      <div class="hint">Это интерактивный макет: реальный бот написан на aiogram 3 (файлы в папке <code>himiya_bot/</code>) и проходит автотесты.</div>
+      <button class="reset" id="reset" style="margin-top:12px">↺ Начать заново</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const logEl = document.getElementById('log');
+const inp = document.getElementById('inp');
+const sendBtn = document.getElementById('send');
+const badge = document.getElementById('chemBadge');
+
+const state = { step: 'name', answers: [], interests: [], qIndex: 0, questIndex: 0, chem: 0 };
+let waitForInput = null;
+
+function log(text, ok) {
+  const d = document.createElement('div');
+  d.textContent = '› ' + text;
+  if (ok) d.className = 'ok';
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function scroll() { chat.scrollTop = chat.scrollHeight; }
+
+function bot(text, opts = {}) {
+  return new Promise(res => {
+    if (opts.typing !== false) {
+      const t = document.createElement('div');
+      t.className = 'msg bot';
+      t.style.opacity = '.55';
+      t.textContent = 'печатает…';
+      chat.appendChild(t); scroll();
+      setTimeout(() => { t.remove(); real(); }, opts.delay ?? Math.min(850, 260 + text.length * 4));
+    } else real();
+    function real() {
+      const d = document.createElement('div');
+      d.className = 'msg bot';
+      d.innerHTML = text;
+      chat.appendChild(d); scroll(); res(d);
+    }
+  });
+}
+
+function me(text) {
+  const d = document.createElement('div');
+  d.className = 'msg me';
+  d.textContent = text;
+  chat.appendChild(d); scroll();
+}
+
+function sys(text) {
+  const d = document.createElement('div');
+  d.className = 'sys'; d.textContent = text;
+  chat.appendChild(d); scroll();
+}
+
+function clearKb() { document.querySelectorAll('.kb').forEach(k => k.remove()); }
+
+function kb(options, opts = {}) {
+  return new Promise(res => {
+    const box = document.createElement('div');
+    box.className = 'kb' + (opts.row ? ' row' : '');
+    options.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'btn' + (o.cls ? ' ' + o.cls : '');
+      b.textContent = o.label;
+      b.onclick = () => { box.remove(); res(o.value); };
+      box.appendChild(b);
+    });
+    chat.appendChild(box); scroll();
+  });
+}
+
+function askInput(placeholder) {
+  inp.placeholder = placeholder;
+  return new Promise(res => { waitForInput = res; });
+}
+
+function setPlaceholder(text) { inp.placeholder = text; }
+
+/* Один вход для всей вводимой информации: имя, город, сообщения в чате */
+function submitInput() {
+  const v = inp.value.trim();
+  if (!v) return;
+  inp.value = '';
+  if (waitForInput) {
+    me(v);
+    const fn = waitForInput; waitForInput = null;
+    fn(v);
+    return;
+  }
+  if (state.step === 'chat') { sendChat(v); return; }
+}
+sendBtn.onclick = submitInput;
+inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitInput(); } });
+
+/* ─────────────────────────── сценарий ─────────────────────────── */
+const QUESTIONS = [
+  { q: 'Идеальная пятница — это…', o: ['Бар с друзьями', 'Сериал и доставка', 'Концерт или выставка', 'Спонтанная поездка'] },
+  { q: 'В человеке для меня важнее…', o: ['Чувство юмора', 'Надёжность', 'Химия и страсть', 'Ум и любопытство'] },
+  { q: 'Твой уровень пофигизма к бардаку в комнате:', o: ['1 из 10 — всё по местам', '5 из 10 — творческий хаос', '10 из 10 — это стихия'] },
+  { q: 'Сова или жаворонок?', o: ['Сова — живу ночью', 'Жаворонок — утро моё', 'Ни то ни сё, я сплю всегда'] },
+  { q: 'Первый шаг в переписке — это…', o: ['Всегда на мне', 'Пусть напишет первым', '50/50, но без «привет»'] }
+];
+
+const INTERESTS = ['музыка', 'кино', 'спорт', 'путешествия', 'книги', 'игры', 'кулинария', 'искусство', 'технологии', 'йога', 'животные', 'ночные гулянки'];
+
+const QUEST = [
+  { q: 'Какой отпуск выберем?', o: ['Море и лежак', 'Горы и рюкзак', 'Город и музеи', 'Дом и никто не звонит'], him: 1, verdict: '💥 <b>Полное совпадение!</b>' },
+  { q: 'Кто первым извинится после ссоры?', o: ['Я', 'Партнёр', 'Оба одновременно', 'Зависит от того, кто прав'], him: 2, verdict: '🤔 <i>По-разному — зато есть о чём поспорить.</i>' },
+  { q: 'Идеальное второе свидание?', o: ['Ужин и разговоры до ночи', 'Что-то активное (каток, картинг)', 'Прогулка без плана', 'Кино и минимум слов'], him: 0, verdict: '💥 <b>Полное совпадение!</b>' },
+  { q: 'Что делаем, если один хочет тусить, а другой спать?', o: ['Идём тусить вместе', 'Спящий отдыхает, второй идёт', 'Остаёмся оба дома', 'Час тусим, потом спать'], him: 3, verdict: '🤔 <i>По-разному — зато есть о чём поспорить.</i>' },
+  { q: 'Сколько времени вместе — для тебя норма?', o: ['Каждый день', '2–3 раза в неделю', 'Раз в неделю, но качественно', 'Как получится'], him: 1, verdict: '💥 <b>Полное совпадение!</b>' }
+];
+
+/* «Скрытое» фото — сгенерированная SVG-заглушка, без внешних картинок */
+function svgPortrait(seed) {
+  const hues = [[268, 320], [210, 260], [320, 20], [190, 230]];
+  const [h1, h2] = hues[seed % hues.length];
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="hsl(${h1},70%,58%)"/><stop offset="1" stop-color="hsl(${h2},72%,52%)"/>
+      </linearGradient></defs>
+      <rect width="400" height="500" fill="url(#g)"/>
+      <circle cx="200" cy="185" r="78" fill="rgba(255,255,255,.85)"/>
+      <path d="M55 500c0-95 65-150 145-150s145 55 145 150z" fill="rgba(255,255,255,.85)"/>
+      <text x="200" y="470" font-family="sans-serif" font-size="26" fill="rgba(0,0,0,.35)" text-anchor="middle">фото открыто 🎉</text>
+    </svg>`);
+}
+
+async function start() {
+  chat.innerHTML = '';
+  logEl.innerHTML = '';
+  Object.assign(state, { step: 'name', answers: [], interests: [], qIndex: 0, questIndex: 0, chem: 0 });
+  badge.textContent = 'химия —';
+  log('dispatcher: /start получен');
+
+  await bot('🧪 <b>Химия</b> — знакомства, где сначала смысл, а потом фото.\n\nЗдесь не надо писать «привет, как дела» в пустоту:\n• анкета — 5 честных вопросов и голосовое\n• фото скрыто, пока не случился мэтч\n• после мэтча — «Ледокол»: 5 вопросов, и только потом контакты\n• мэтч сгорает за 48 часов тишины\n\nПогнали? Заполним анкету — это минута.', { delay: 900 });
+  await bot('Как тебя зовут? (имя или ник — как хочешь, чтобы видели другие)');
+  askInput('Твоё имя…');
+}
+
+async function afterName() {
+  log('FSM: name → age');
+  await bot('Сколько тебе лет? Только 18+ 🙂');
+  const age = await kb([{ label: '24', value: '24' }, { label: '27', value: '27' }, { label: '31', value: '31' }], { row: true });
+  me(age + ' года');
+  await bot('Из какого ты города?');
+  askInput('Город…');
+}
+
+async function afterCity(city) {
+  log('FSM: city → gender');
+  await bot(`📍 ${city}. Отлично, будем поднимать локальные анкеты выше.\n\nТвой пол?`);
+  const gender = await kb([{ label: 'Парень', value: 'm' }, { label: 'Девушка', value: 'f' }, { label: 'Другое', value: 'x' }], { row: true });
+  me(gender === 'f' ? 'Девушка' : gender === 'm' ? 'Парень' : 'Другое');
+  await bot('Кого ищешь?');
+  const seek = await kb([{ label: 'Девушек', value: 'f' }, { label: 'Парней', value: 'm' }, { label: 'Всех', value: 'any' }], { row: true });
+  me(seek === 'f' ? 'Девушек' : seek === 'm' ? 'Парней' : 'Всех');
+  log('FSM: seek → 5 вопросов анкеты');
+  await askQuestions();
+}
+
+async function askQuestions() {
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    const item = QUESTIONS[i];
+    await bot(`<b>Анкета: вопрос ${i + 1} из 5</b>\n\n${item.q}`);
+    const opts = item.o.map(o => ({ label: o, value: o }));
+    const pick = await kb(opts);
+    me(pick);
+    state.answers.push(pick);
+    log(`ans[${i}] = ${pick}`);
+  }
+
+  await bot('Готово ✅\n\nТеперь фото 📸\n\nОно <b>не показывается</b> в ленте — человек увидит его только после взаимного мэтча. Так что можно без фильтров и позёрства.');
+  const photoBtn = await kb([{ label: '📸 Отправить фото', value: 'photo', cls: 'primary' }]);
+  const d = document.createElement('div');
+  d.className = 'msg me';
+  d.innerHTML = `<div class="photo-hidden">твоё фото<br><span style="font-size:11px">скрыто от ленты</span></div>`;
+  chat.appendChild(d); scroll();
+  log('photo_id сохранён (скрыт в ленте)');
+
+  await bot('И главное — <b>голосовое на 15 секунд</b> 🎙\n\nОтветь: «Что тебя в последний раз удивило?»\nЖивой голос отсекает 99% ботов и сразу делает анкету в 10 раз интереснее.');
+  await kb([{ label: '🎙 Записать 12 сек', value: 'voice', cls: 'primary' }, { label: 'Пропустить (/skip)', value: 'skip' }]);
+  const v = document.createElement('div');
+  v.className = 'msg me';
+  v.innerHTML = '🎙 <i>голосовое · 0:12</i>';
+  chat.appendChild(v); scroll();
+  log('voice_id сохранён → +бейдж «живой человек»');
+
+  await bot('Выбери 3–6 интересов — по ним тоже считаем химию.');
+  await interestsStep();
+}
+
+async function interestsStep() {
+  const chosen = new Set();
+  while (true) {
+    const opts = INTERESTS.map(t => ({ label: (chosen.has(t) ? '✅ ' : '') + t, value: t }));
+    opts.push({ label: `Готово (${chosen.size}) →`, value: '__done', cls: 'primary' });
+    const pick = await kb(opts, { row: true });
+    if (pick === '__done') {
+      if (chosen.size < 3) { await bot('Выбери хотя бы 3 интереса 🙂'); continue; }
+      break;
+    }
+    chosen.has(pick) ? chosen.delete(pick) : chosen.add(pick);
+    log(`interests = [${[...chosen].join(', ')}]`);
+  }
+  state.interests = [...chosen];
+  clearKb();
+  await bot('✅ Анкета готова! Ты в ленте.\n\nЖми «🔍 Искать» — и погнали.', { delay: 500 });
+  await kb([{ label: '🔍 Искать', value: 'feed', cls: 'primary' }]);
+  await showCard();
+}
+
+async function showCard() {
+  const chem = 74 + Math.floor(Math.random() * 22);
+  state.chem = chem;
+  badge.textContent = 'химия ' + chem + '%';
+  log(`feed: подобрана анкета (химия = ${chem}%)`);
+
+  await bot(`🧪 <b>Марк, 28</b> — Лондон 🛡\n💫 Химия с тобой: <b>${chem}%</b>\n📍 Тот же город\n\n<i>Идеальная пятница — это…</i>\n→ Бар с друзьями\n<i>В человеке для меня важнее…</i>\n→ Чувство юмора\n<i>Твой уровень пофигизма к бардаку в комнате:</i>\n→ 5 из 10 — творческий хаос\n<i>Сова или жаворонок?</i>\n→ Сова — живу ночью\n<i>Первый шаг в переписке — это…</i>\n→ Всегда на мне\n\n🏷 музыка · кино · путешествия · фотография\n\n📸 Фото откроется, если совпадёте.`, { delay: 700 });
+
+  const choice = await kb([
+    { label: '❤️ Хочу познакомиться', value: 'like', cls: 'primary' },
+    { label: '➖ Дальше', value: 'skip', cls: 'dim' },
+    { label: '👀 Подглядеть фото — 1 ⭐', value: 'peek', cls: 'star' }
+  ]);
+
+  if (choice === 'peek') {
+    await bot('📸 Фото <b>Марк</b> скрыто.\n\nМожно подглядеть за ⭐ Telegram Stars — но тогда интрига умрёт 🤷');
+    log('invoice: XTR 1 ⭐ payload="peek:2"');
+    const still = await kb([{ label: '❤️ Ладно, лучше по-честному', value: 'like', cls: 'primary' }, { label: '➖ Дальше', value: 'skip', cls: 'dim' }]);
+    return handleFeedChoice(still);
+  }
+  return handleFeedChoice(choice);
+}
+
+async function handleFeedChoice(choice) {
+  if (choice === 'skip') {
+    log('seen[viewer=ты] += Марк');
+    await bot('➖ Дальше.');
+    await bot('Пока анкеты закончились 😴 Загляни позже — или сразу к мэтчам.', { delay: 400 });
+    await kb([{ label: '🔍 Искать', value: 'feed' }, { label: '💬 Мои мэтчи', value: 'matches' }]);
+    return;
+  }
+  me('❤️ Хочу познакомиться');
+  log('like: ты → Марк');
+  await bot('❤️ Лайк улетел.', { delay: 400 });
+  await bot('…в базе нашёлся встречный лайк от Марка 👀', { delay: 700 });
+  sys('взаимный лайк');
+  log('match created: users(ты, Марк), ttl=48h', true);
+  await bot('🔥💥 <b>МЭТЧ!</b>\n\nВы оба нажали «хочу познакомиться». Теперь — <b>Ледокол</b> 🧊\n5 вопросов, отвечаете оба, ответы видите только после того, как ответили двое.\nПройдёте — открою контакты и чат.', { delay: 800 });
+  await quest();
+}
+
+async function quest() {
+  for (let i = 0; i < QUEST.length; i++) {
+    const item = QUEST[i];
+    await bot(`🧊 <b>Вопрос ${i + 1} из 5</b>\n\n${item.q}`);
+    const pick = await kb(item.o.map(o => ({ label: o, value: o })));
+    me(pick);
+    log(`quest_answers[${i}] ты = ${pick}`);
+
+    await bot('🧊 Ответ принят. Ждём вторую сторону…', { delay: 320 });
+    await bot('Марк ответил 👇', { delay: 650 });
+    const him = item.o[item.him];
+    log(`quest_answers[${i}] Марк = ${him}`);
+    await bot(`🧊 <b>Вопрос ${i + 1}/5:</b> ${item.q}\n\n<b>Ты:</b> ${pick}\n<b>Марк:</b> ${him}\n\n${item.verdict}`);
+  }
+
+  log('both quest_progress = 5 → unlock', true);
+  await bot('🎉 <b>Ледокол пройден!</b>\n\nЧат открыт, контакты — ниже. Напиши первым что-нибудь поумнее «привет» 😉\nУ вас <b>48 ч</b>, чтобы начать разговор, иначе мэтч сгорит.', { delay: 800 });
+
+  const d = document.createElement('div');
+  d.className = 'msg bot';
+  d.innerHTML = `<img class="photo" src="${svgPortrait(1)}" alt="фото Марка"><div style="margin-top:8px">📸 Вот и фото: <b>Марк</b>, 28</div>`;
+  chat.appendChild(d); scroll();
+  log('photo_id раскрыт обоим участникам');
+
+  state.step = 'chat';
+  await kb([{ label: '💬 Писать здесь, анонимно', value: 'chat', cls: 'primary' }]);
+  await bot('Чат открыт. Пиши — сообщение уйдёт анонимно, твой @юзернейм человек увидит только если сам его скинет.', { delay: 500 });
+  await bot('Кстати, теперь у меня есть <b>📰 Лента</b> — материалы по темам, которые выберешь ты. Главное: любую карточку можно одним тапом кинуть в этот чат как повод заговорить. Показать?', { delay: 700 });
+  const wantNews = await kb([
+    { label: '📰 Показать ленту', value: 'news', cls: 'primary' },
+    { label: '💬 Просто общаться', value: 'chat', cls: 'dim' }
+  ]);
+  if (wantNews === 'news') {
+    await newsDemo();
+  } else {
+    setPlaceholder('Написать Марку…');
+  }
+}
+
+const REPLIES = [
+  'О, значит и ты из тех, кто в пятницу выбирает бар, а не сериал 😄 Какое место в Лондоне твоё любимое?',
+  'Слушай, а я как раз вчера был на выставке в Саутбэнке — зашло. Тебя куда-нибудь тянет на выходных?',
+  'Признаюсь: голосовое в анкете — это то, из-за чего я вообще нажал «хочу познакомиться». Голос — топ.',
+  'Тогда предлагаю так: в четверг на кофе, и посмотрим, сработает ли химия не только в приложении 🧪'
+];
+let replyIdx = 0;
+
+async function sendChat(text) {
+  me(text);
+  log(`relay: msg(ты → Марк) = "${text.slice(0, 28)}"`);
+  const reply = replyIdx < REPLIES.length
+    ? REPLIES[replyIdx++]
+    : 'Слушай, а давай завтра созвонимся? Голосом проще 😌';
+  await bot('<b>Марк</b>\n' + reply, { delay: 1200 });
+  log('relay: msg(Марк → ты), reply-маршрут сохранён');
+}
+
+/* ─────────────────────────── ЛЕНТА ─────────────────────────── */
+const NEWS_TOPICS = ['💻 Технологии', '🔬 Наука', '🎧 Музыка', '🎬 Кино', '⚽ Спорт', '🇬🇧 Лондон', '🧠 Психология', '🎮 Игры', '✈️ Путешествия', '🎭 Культура'];
+
+const ARTICLES = [
+  {
+    topic: '🎬 Кино',
+    title: 'Полуночные показы возвращаются в кинотеатры Лондона',
+    source: 'Evening Standard · 3 ч назад',
+    summary: 'Независимые кинотеатры Soho и Peckham возрождают сеансы в полночь: билеты раскупают за сутки, а половина зала — люди 25–35 лет, которые приходят одни.',
+    domain: 'standard.co.uk'
+  },
+  {
+    topic: '🧠 Психология',
+    title: 'Учёные: 20 минут разговора с незнакомцем снижают тревожность сильнее, чем скроллинг',
+    source: 'PsyBlog · 6 ч назад',
+    summary: 'В исследовании на 600 участниках короткий живой разговор дал больший эффект, чем 40 минут в соцсетях. Авторы шутят, что «дейтинг-приложения могли бы быть терапией».',
+    domain: 'spring.org.uk'
+  },
+  {
+    topic: '🇬🇧 Лондон',
+    title: 'В восточном Лондоне открылся рынок, где платят вниманием, а не деньгами',
+    source: 'BBC London · 1 ч назад',
+    summary: 'На Hackney Bridge запустили «бартерную субботу»: за продуктовый набор нужно не заплатить, а 10 минут поговорить с продавцом о его ремесле.',
+    domain: 'bbc.co.uk'
+  }
+];
+
+function topicsMultiselect(options) {
+  return new Promise(res => {
+    const box = document.createElement('div');
+    box.className = 'kb row';
+    const chosen = new Set();
+    options.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'btn'; b.textContent = opt;
+      b.onclick = () => {
+        if (chosen.has(opt)) { chosen.delete(opt); b.textContent = opt; }
+        else { chosen.add(opt); b.textContent = '✅ ' + opt; }
+        done.textContent = `Готово (${chosen.size}) →`;
+      };
+      box.appendChild(b);
+    });
+    const done = document.createElement('button');
+    done.className = 'btn primary'; done.textContent = 'Готово (0) →';
+    done.onclick = () => {
+      if (!chosen.size) { chosen.add(options[0]); }
+      box.remove(); res([...chosen]);
+    };
+    box.appendChild(done);
+    chat.appendChild(box); scroll();
+  });
+}
+
+function articleBubble(art, i) {
+  return `📰 <b>${art.title}</b>\n<i>${art.source}</i>\n<blockquote>${art.summary}</blockquote>`;
+}
+
+async function newsDemo() {
+  state.step = 'news';
+  log('news: /news → построение дайджеста по темам');
+  await bot('📰 <b>Лента</b> — не новостник, а топливо для разговора. Хочешь — читай, хочешь — кидай карточку мэтчу и обсуждай прямо здесь.\n\nВыбери темы (можно несколько):');
+  const pickedTopics = await topicsMultiselect(NEWS_TOPICS);
+  me('Темы: ' + pickedTopics.join(', '));
+  log('user_topics = ' + pickedTopics.length + ' шт.');
+
+  await bot('Принял. Собираю по свежести и по тому, что уже заходит другим 👀', { delay: 600 });
+
+  const art = ARTICLES[0];
+  await bot(articleBubble(art, 0), { delay: 700 });
+
+  const card = document.createElement('div');
+  card.className = 'msg me';
+  card.innerHTML = `<div class="preview"><div class="thumb"></div><div class="body"><b>${art.title}</b>${art.domain}</div></div>`;
+  chat.appendChild(card); scroll();
+  log('article #1 отрендерена с превью');
+
+  const action = await kb([
+    { label: '💌 Поделиться с мэтчем', value: 'share', cls: 'primary' },
+    { label: '📖 Открыть статью', value: 'open', cls: 'dim' },
+    { label: '🔖 В закладки', value: 'save', cls: 'dim' },
+    { label: '➖ Дальше', value: 'skip', cls: 'dim' }
+  ]);
+
+  if (action === 'save') {
+    log('article_marks: saved');
+    await bot('🔖 В закладках. Найдёшь в «🔖 Закладки».', { delay: 300 });
+    await shareOrNext();
+  } else if (action === 'open') {
+    await bot('📖 Открыл бы статью в браузере — но здесь важнее другое: её можно обсудить, не выходя из бота 🙂', { delay: 400 });
+    await shareOrNext();
+  } else if (action === 'skip') {
+    log('article_marks: seen (skip)');
+    await bot('➖ Дальше. Принесу следующее по твоим темам.', { delay: 300 });
+    await shareOrNext();
+  } else {
+    await shareToMatch(art);
+  }
+}
+
+async function shareOrNext() {
+  const choice = await kb([
+    { label: '💌 Поделиться с мэтчем', value: 'share', cls: 'primary' },
+    { label: '📰 Ещё материал', value: 'more' },
+    { label: '💬 Вернуться в чат', value: 'chat', cls: 'dim' }
+  ]);
+  if (choice === 'share') return shareToMatch(ARTICLES[0]);
+  if (choice === 'more') return nextArticle();
+  state.step = 'chat'; setPlaceholder('Написать Марку…');
+}
+
+async function nextArticle() {
+  const art = ARTICLES[1];
+  await bot(articleBubble(art, 1), { delay: 600 });
+  log('news: следующая карточка по теме');
+  await shareOrNext();
+}
+
+async function shareToMatch(art) {
+  log('news: share → выбор мэтча');
+  await bot('💌 Кому отправим? Карточка появится прямо в вашем чате — уходить из бота не надо.');
+  const target = await kb([{ label: '💬 Марк', value: 'mark' }, { label: '← Назад', value: 'back', cls: 'dim' }]);
+  if (target === 'back') return shareOrNext();
+
+  log('shares: from=ты, to=Марк, article=#1', true);
+  await bot('✅ Отправлено Марку. Вот как это выглядит у него 👇', { delay: 400 });
+
+  const shared = document.createElement('div');
+  shared.className = 'msg bot';
+  shared.innerHTML = `<div class="shared-tag">💌 Аня поделилась:</div>📰 <b>${art.title}</b><br><i>${art.source}</i><blockquote>${art.summary}</blockquote><div class="preview"><div class="thumb"></div><div class="body"><b>${art.title}</b>${art.domain}</div></div>`;
+  chat.appendChild(shared); scroll();
+
+  const react = await kb([
+    { label: '🔥 Класс', value: 'fire' },
+    { label: '🤔 Спорно', value: 'hmm' },
+    { label: '💬 Обсудить', value: 'talk' }
+  ]);
+  const label = react === 'fire' ? '🔥 Класс' : react === 'hmm' ? '🤔 Спорно' : '💬 Обсудить';
+  log(`nreact: Марк → ${label} (уходит тебе как сообщение)`);
+
+  await bot(`💬 <b>Марк</b>: ${label}\n<i>на «${art.title.slice(0, 46)}…»</i>`, { delay: 900 });
+  await bot('Смотри, что происходит: реакция Марка пришла тебе <b>как обычное сообщение</b> — и мэтч ожил, никто ничего не открывал в браузере. Разговор уже начался.', { delay: 900 });
+  await bot('💬 <b>Марк</b>\nО, я как раз собирался туда сходить! Пойдём в пятницу на полуночный сеанс?', { delay: 1300 });
+  log('relay: msg(Марк → ты), reply-маршрут сохранён');
+
+  state.step = 'chat';
+  setPlaceholder('Написать Марку…');
+  await bot('Кстати: у тебя есть <b>☕ Дайджест</b> (3 материала дня), <b>🔖 Закладки</b> и <b>⚙️ /topics</b>. А если вы с кем-то сохранили одну статью — я сам скажу: «вы оба это читали» 👀', { delay: 900 });
+}
+
+/* ─────────────────────── связка ввода/шагов ─────────────────────── */
+const originalAsk = askInput;
+askInput = function (placeholder) {
+  return originalAsk(placeholder).then(async v => {
+    if (state.step === 'name') {
+      state.step = 'age';
+      await afterName();
+    } else if (state.step === 'age') {
+      state.step = 'city';
+      await afterCity(v);
+    }
+  });
+};
+
+document.getElementById('reset').onclick = () => { state.step = 'name'; start(); };
+
+start();
+</script>
+</body>
+</html>
